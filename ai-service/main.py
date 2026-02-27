@@ -14,6 +14,7 @@ from optimizer import (
 from train_model import train_model
 from realtime_data import real_time_data, SensorReading
 from constraints import constraint_engine
+from phase2_integration import setup_phase2_routes
 
 app = FastAPI(title="CastOpt AI", version="2.0")
 
@@ -262,3 +263,9 @@ async def get_site_constraints(site_id: str):
         }
     else:
         return {"status": "error", "message": f"Site {site_id} not found"}
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize Phase 2 business logic components"""
+    setup_phase2_routes(app)
+    print("✅ Phase 2 business logic components initialized")

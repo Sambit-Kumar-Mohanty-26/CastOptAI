@@ -9,6 +9,8 @@ import Header from "@/components/Header";
 import InputPanel from "@/components/InputPanel";
 import EmptyState from "@/components/EmptyState";
 import ResultsPanel from "@/components/ResultsPanel";
+import ParetoOptimizerPanel from "@/components/phase2/ParetoOptimizer";
+import RiskAssessmentPanel from "@/components/phase2/RiskAssessment";
 
 const AI_SERVICE_URL = process.env.NEXT_PUBLIC_AI_SERVICE_URL || "http://localhost:8000";
 const WEATHER_API_KEY = process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY || "";
@@ -46,6 +48,11 @@ export default function Dashboard() {
   const [selectedStrategy, setSelectedStrategy] = useState(0);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState<"results" | "whatif" | "learn">("results");
+  
+  // Phase 2 State Variables
+  const [paretoData, setParetoData] = useState<any>(null);
+  const [riskData, setRiskData] = useState<any>(null);
+  const [showPhase2, setShowPhase2] = useState(false);
   const [optContext, setOptContext] = useState<OptContext | null>(null);
   const [paramsChanged, setParamsChanged] = useState(false);
 
@@ -139,6 +146,73 @@ export default function Dashboard() {
     setLoading(false);
   }, [weather, targetStrength, targetTime, city]);
 
+  // Phase 2 Functions
+  const handleParetoOptimize = useCallback(async (weights: any) => {
+    if (weather.temp === null) {
+      setError("Please select a city first.");
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const siteId = cityToSiteId[city] || city.toLowerCase().replace(/\s+/g, '_') + '_yard';
+      
+      const res = await axios.post(`${AI_SERVICE_URL}/phase2/pareto-optimization`, {
+        target_strength: targetStrength,
+        target_time: targetTime,
+        site_id: siteId,
+        objective_weights: weights,
+        constraint_relaxation: 0.1
+      });
+      
+      if (res.data.status === "success") {
+        setParetoData(res.data.data.visualization_data.solutions);
+        setRiskData(null); // Clear risk data for fresh analysis
+        setShowPhase2(true);
+        setActiveTab("results");
+      } else {
+        setError(res.data.message || "Pareto optimization failed.");
+      }
+    } catch (err) {
+      setError("Cannot connect to CastOpt AI Phase 2 service.");
+      console.error("Pareto optimization error:", err);
+    }
+    setLoading(false);
+  }, [weather, targetStrength, targetTime, city]);
+
+  const handleRiskAssessment = useCallback(async () => {
+    if (!result || !result.strategies || result.strategies.length === 0) {
+      setError("Please run optimization first.");
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const selectedRecipe = result.strategies[selectedStrategy].recommended_recipe;
+      
+      const res = await axios.post(`${AI_SERVICE_URL}/phase2/risk-assessment`, {
+        recipe: selectedRecipe,
+        environmental_conditions: {
+          temperature: weather.temp,
+          humidity: weather.humidity
+        },
+        target_strength: targetStrength
+      });
+      
+      if (res.data.status === "success") {
+        setRiskData(res.data.data);
+        setShowPhase2(true);
+        setActiveTab("results");
+      } else {
+        setError(res.data.message || "Risk assessment failed.");
+      }
+    } catch (err) {
+      setError("Cannot connect to CastOpt AI risk assessment service.");
+      console.error("Risk assessment error:", err);
+    }
+    setLoading(false);
+  }, [result, selectedStrategy, weather, targetStrength]);
+
 
   useEffect(() => {
 
@@ -200,18 +274,43 @@ export default function Dashboard() {
                 )}
 
                 {result && !loading && (
-                  <ResultsPanel
-                    result={result}
-                    selectedStrategy={selectedStrategy}
-                    onSelectStrategy={setSelectedStrategy}
-                    activeTab={activeTab}
-                    onTabChange={setActiveTab}
-                    weather={{ temp: weather.temp, humidity: weather.humidity }}
-                    targetStrength={targetStrength}
-                    targetTime={targetTime}
-                    optContext={optContext}
-                    paramsChanged={paramsChanged}
-                  />
+                  <div className="space-y-6">
+                    {/* Standard Results Panel */}
+                    <ResultsPanel
+                      result={result}
+                      selectedStrategy={selectedStrategy}
+                      onSelectStrategy={setSelectedStrategy}
+                      activeTab={activeTab}
+                      onTabChange={setActiveTab}
+                      weather={{ temp: weather.temp, humidity: weather.humidity }}
+                      targetStrength={targetStrength}
+                      targetTime={targetTime}
+                      optContext={optContext}
+                      paramsChanged={paramsChanged}
+                    />
+                    
+                    {/* Phase 2 Controls */}
+                    <div className="flex flex-wrap gap-4 pt-4">
+                      <button 
+                        onClick={handleRiskAssessment}
+                        disabled={loading}
+                        className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold rounded transition-colors disabled:opacity-50"
+                      >
+                        Analyze Risk Profile
+                      </button>
+                    </div>
+                    
+                    {/* Phase 2 Components */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <ParetoOptimizerPanel 
+                        onOptimize={handleParetoOptimize}
+                        paretoData={paretoData}
+                      />
+                      <RiskAssessmentPanel 
+                        riskData={riskData}
+                      />
+                    </div>
+                  </div>
                 )}
               </div>
             </div>

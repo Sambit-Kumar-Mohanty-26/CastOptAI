@@ -15,6 +15,7 @@ from train_model import train_model
 from realtime_data import real_time_data, SensorReading
 from constraints import constraint_engine
 from phase2_integration import setup_phase2_routes
+from phase3_integration import setup_phase3_routes
 
 app = FastAPI(title="CastOpt AI", version="2.0")
 
@@ -266,6 +267,8 @@ async def get_site_constraints(site_id: str):
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize Phase 2 business logic components"""
+    """Initialize Phase 2 and Phase 3 business logic components"""
     setup_phase2_routes(app)
+    setup_phase3_routes(app)
     print("✅ Phase 2 business logic components initialized")
+    print("✅ Phase 3 advanced analytics components initialized")

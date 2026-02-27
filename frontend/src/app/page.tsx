@@ -367,58 +367,62 @@ export default function Dashboard() {
                       paramsChanged={paramsChanged}
                     />
                     
-                    {/* Phase 2 Controls */}
-                    <div className="flex flex-wrap gap-4 pt-4">
-                      <button 
-                        onClick={handleRiskAssessment}
-                        disabled={loading}
-                        className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold rounded transition-colors disabled:opacity-50"
-                      >
-                        Analyze Risk Profile
-                      </button>
-                    </div>
-                    
-                    {/* Phase 2 Components */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <ParetoOptimizerPanel 
-                        onOptimize={handleParetoOptimize}
-                        paretoData={paretoData}
-                      />
-                      <RiskAssessmentPanel 
-                        riskData={riskData}
-                      />
-                    </div>
-                    
-                    {/* Phase 3 Controls */}
-                    <div className="flex flex-wrap gap-4 pt-4">
-                      <button 
-                        onClick={handlePredictiveAnalytics}
-                        disabled={loading}
-                        className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white text-sm font-bold rounded transition-colors disabled:opacity-50"
-                      >
-                        Run Predictive Analytics
-                      </button>
-                      <button 
-                        onClick={handleAdvancedAnalytics}
-                        disabled={loading}
-                        className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-bold rounded transition-colors disabled:opacity-50"
-                      >
-                        Run Advanced Analytics
-                      </button>
-                    </div>
-                    
-                    {/* Phase 3 Components */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <PredictiveAnalyticsPanel 
-                        predictions={predictiveData?.price_predictions}
-                        demandForecasts={predictiveData?.forecasts}
-                      />
-                      <AdvancedAnalyticsPanel 
-                        insights={analyticsData?.pattern_insights}
-                        clusters={analyticsData?.project_clusters}
-                        performanceReport={analyticsData?.performance_report}
-                      />
-                    </div>
+                    {activeTab === "results" && (
+                      <>
+                        {/* Phase 2 Controls */}
+                        <div className="flex flex-wrap gap-4 pt-4">
+                          <button 
+                            onClick={handleRiskAssessment}
+                            disabled={loading}
+                            className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold rounded transition-colors disabled:opacity-50"
+                          >
+                            Analyze Risk Profile
+                          </button>
+                        </div>
+                        
+                        {/* Phase 2 Components */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <ParetoOptimizerPanel 
+                            onOptimize={handleParetoOptimize}
+                            paretoData={paretoData}
+                          />
+                          <RiskAssessmentPanel 
+                            riskData={riskData}
+                          />
+                        </div>
+                        
+                        {/* Phase 3 Controls */}
+                        <div className="flex flex-wrap gap-4 pt-4">
+                          <button 
+                            onClick={handlePredictiveAnalytics}
+                            disabled={loading}
+                            className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white text-sm font-bold rounded transition-colors disabled:opacity-50"
+                          >
+                            Run Predictive Analytics
+                          </button>
+                          <button 
+                            onClick={handleAdvancedAnalytics}
+                            disabled={loading}
+                            className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-bold rounded transition-colors disabled:opacity-50"
+                          >
+                            Run Advanced Analytics
+                          </button>
+                        </div>
+                        
+                        {/* Phase 3 Components */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <PredictiveAnalyticsPanel 
+                            predictions={predictiveData?.price_predictions}
+                            demandForecasts={predictiveData?.forecasts}
+                          />
+                          <AdvancedAnalyticsPanel 
+                            insights={analyticsData?.pattern_insights}
+                            clusters={analyticsData?.project_clusters}
+                            performanceReport={analyticsData?.performance_report}
+                          />
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
               </div>

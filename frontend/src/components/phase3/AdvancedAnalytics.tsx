@@ -120,8 +120,8 @@ export default function AdvancedAnalyticsPanel({
   const clusterChartData = Object.entries(currentClusters).map(([key, cluster]) => ({
     name: key,
     size: cluster.size,
-    avg_cost: cluster.avg_values.cost || 0,
-    avg_strength: cluster.avg_values.predicted_strength || 0
+    avg_cost: cluster.avg_values?.cost || 0,
+    avg_strength: cluster.avg_values?.predicted_strength || 0
   }));
 
   const recommendationColors: Record<string, string> = {
@@ -194,8 +194,8 @@ export default function AdvancedAnalyticsPanel({
                 <p className="text-sm text-gray-600">{cluster.characteristics}</p>
                 <div className="mt-2 text-xs">
                   <p>Size: {cluster.size} projects</p>
-                  <p>Avg Cost: ₹{cluster.avg_values.cost?.toFixed(0) || 0}</p>
-                  <p>Avg Strength: {cluster.avg_values.predicted_strength?.toFixed(1) || 0} MPa</p>
+                  <p>Avg Cost: ₹{cluster.avg_values?.cost?.toFixed(0) || 0}</p>
+                  <p>Avg Strength: {cluster.avg_values?.predicted_strength?.toFixed(1) || 0} MPa</p>
                 </div>
               </div>
             ))}
@@ -226,15 +226,15 @@ export default function AdvancedAnalyticsPanel({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div className="border rounded p-3 bg-blue-50">
               <div className="text-xs font-semibold text-blue-800">Total Optimizations</div>
-              <div className="text-lg font-bold text-blue-600">{currentReport.summary?.total_optimizations || 0}</div>
+              <div className="text-lg font-bold text-blue-600">{currentReport?.summary?.total_optimizations || 0}</div>
             </div>
             <div className="border rounded p-3 bg-green-50">
               <div className="text-xs font-semibold text-green-800">Avg Savings %</div>
-              <div className="text-lg font-bold text-green-600">{currentReport.efficiency_metrics?.avg_savings_percent?.toFixed(1) || 0}%</div>
+              <div className="text-lg font-bold text-green-600">{currentReport?.efficiency_metrics?.avg_savings_percent?.toFixed(1) || 0}%</div>
             </div>
             <div className="border rounded p-3 bg-purple-50">
               <div className="text-xs font-semibold text-purple-800">Avg Cost/Strength</div>
-              <div className="text-lg font-bold text-purple-600">₹{currentReport.efficiency_metrics?.avg_cost_per_strength?.toFixed(0) || 0}</div>
+              <div className="text-lg font-bold text-purple-600">₹{currentReport?.efficiency_metrics?.avg_cost_per_strength?.toFixed(0) || 0}</div>
             </div>
           </div>
 

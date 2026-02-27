@@ -1,0 +1,57 @@
+{
+  "site_id": "mumbai_yard",
+  "site_name": "Mumbai Coastal Yard",
+  "location": "Mumbai, India",
+  "timezone": "Asia/Kolkata",
+  "cement_bounds": {
+    "min_value": 280,
+    "max_value": 550,
+    "unit": "kg",
+    "description": "Higher cement for marine conditions"
+  },
+  "chemical_bounds": {
+    "min_value": 1.0,
+    "max_value": 12.0,
+    "unit": "kg",
+    "description": "Enhanced chemical resistance"
+  },
+  "steam_bounds": {
+    "min_value": 2,
+    "max_value": 12,
+    "unit": "hours",
+    "description": "Extended curing for durability"
+  },
+  "water_bounds": {
+    "min_value": 140,
+    "max_value": 180,
+    "unit": "kg",
+    "description": "Lower water for strength"
+  },
+  "max_batch_size": 3.0,
+  "min_curing_temp": 15,
+  "max_curing_temp": 70,
+  "max_steam_pressure": 10,
+  "cement_storage_capacity": 75000,
+  "chemical_storage_capacity": 8000,
+  "current_cement_stock": 45000,
+  "current_chemical_stock": 5200,
+  "primary_supplier": "UltraTech",
+  "backup_suppliers": ["ACC", "Shree Cement"],
+  "min_order_quantity": 2000,
+  "delivery_lead_time": 18,
+  "quality_standards": ["IS 8112", "IS 456", "BS EN 206"],
+  "working_hours": [5, 23],
+  "max_daily_production": 75,
+  "safety_margins": {
+    "cement": 0.1,
+    "chemicals": 0.15,
+    "steam": 0.2
+  },
+  "local_temperature_range": [20, 35],
+  "humidity_range": [60, 95],
+  "seasonal_adjustments": {
+    "summer": 1.2,
+    "monsoon": 1.3,
+    "winter": 1.0
+  }
+}

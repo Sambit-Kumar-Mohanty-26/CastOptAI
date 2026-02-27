@@ -88,7 +88,7 @@ export default function ESGReports() {
                                     <h3 className="text-[12px] font-extrabold text-[#0F172A] uppercase tracking-widest">CO₂ Emissions Trend (Kg)</h3>
                                 </div>
                                 <div className="p-6 h-[280px]">
-                                    <ResponsiveContainer width="100%" height="100%">
+                                    <ResponsiveContainer width="100%" height={280}>
                                         <AreaChart data={MONTHLY_DATA}>
                                             <defs>
                                                 <linearGradient id="colorCo2" x1="0" y1="0" x2="0" y2="1">
@@ -110,7 +110,7 @@ export default function ESGReports() {
                                     <h3 className="text-[12px] font-extrabold text-[#0F172A] uppercase tracking-widest">Energy Usage vs Cost Savings</h3>
                                 </div>
                                 <div className="p-6 h-[280px]">
-                                    <ResponsiveContainer width="100%" height="100%">
+                                    <ResponsiveContainer width="100%" height={280}>
                                         <BarChart data={MONTHLY_DATA}>
                                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
                                             <XAxis dataKey="month" tick={{ fontSize: 11, fontWeight: 700, fill: "#64748B", fontFamily: "var(--font-mono)" }} stroke="#CBD5E1" />

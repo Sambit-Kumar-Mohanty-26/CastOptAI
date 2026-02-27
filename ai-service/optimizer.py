@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
 import joblib
+from constraints import constraint_engine
 
 
 model = joblib.load('model.pkl')
@@ -152,15 +153,36 @@ def strength_constraint(x, target_strength, target_time, temp, humidity):
     return pred - target_strength
 
 
-def run_optimization(objective_fn, target_strength, target_time, temp, humidity):
-    """Run SciPy optimization with a given objective function."""
-    x0 = [300, 2, 1]
+def run_optimization(objective_fn, target_strength, target_time, temp, humidity, site_id=None):
+    """Run SciPy optimization with dynamic bounds based on site constraints."""
+    # Set current site if provided
+    if site_id:
+        constraint_engine.set_current_site(site_id)
+    
+    # Get dynamic bounds
+    dynamic_bounds = constraint_engine.get_dynamic_bounds()
+    cement_bounds = dynamic_bounds['cement']
+    chemical_bounds = dynamic_bounds['chemicals']
+    steam_bounds = dynamic_bounds['steam']
+    water_bounds = dynamic_bounds['water']
+    
+    x0 = [
+        (cement_bounds[0] + cement_bounds[1]) / 2,  # Midpoint for cement
+        (chemical_bounds[0] + chemical_bounds[1]) / 2,  # Midpoint for chemicals
+        (steam_bounds[0] + steam_bounds[1]) / 2  # Midpoint for steam
+    ]
+    
     cons = {
         'type': 'ineq',
         'fun': strength_constraint,
         'args': (target_strength, target_time, temp, humidity)
     }
-    bounds = [(200, 550), (0, 15), (0, 12)]
+    
+    bounds = [
+        cement_bounds,
+        chemical_bounds,
+        steam_bounds
+    ]
 
     res = minimize(
         objective_fn, x0,
@@ -173,13 +195,23 @@ def run_optimization(objective_fn, target_strength, target_time, temp, humidity)
         cement = round(res.x[0], 1)
         chemicals = round(res.x[1], 2)
         steam = round(res.x[2], 1)
+        
+        # Validate final recipe against all constraints
+        is_valid, violations = constraint_engine.validate_proposed_recipe(
+            cement, chemicals, steam, water_bounds[1]
+        )
+        
+        if not is_valid:
+            print(f"Constraint violations: {violations}")
+            return None
+            
         return cement, chemicals, steam
     return None
 
 
-def build_strategy(name, label, objective_fn, target_strength, target_time, temp, humidity, baseline):
+def build_strategy(name, label, objective_fn, target_strength, target_time, temp, humidity, baseline, site_id=None):
     """Run optimization and build a complete strategy response dict."""
-    result = run_optimization(objective_fn, target_strength, target_time, temp, humidity)
+    result = run_optimization(objective_fn, target_strength, target_time, temp, humidity, site_id)
 
     if result is None:
         return None
@@ -216,7 +248,47 @@ def build_strategy(name, label, objective_fn, target_strength, target_time, temp
     }
 
 
-def get_all_strategies(target_strength, target_time, temp, humidity):
+def get_all_strategies(target_strength, target_time, temp, humidity, site_id=None):
+    # If site_id is provided but doesn't exist, use default constraints
+    if site_id:
+        constraint_engine.set_current_site(site_id)
+        # Check if the site exists, if not create a default one
+        if not constraint_engine.get_current_constraints():
+            # Create a default site profile if the specified site doesn't exist
+            from constraints import SiteProfile, ConstraintBounds
+            import os
+            
+            default_profile = SiteProfile(
+                site_id=site_id,
+                site_name=f"{site_id.replace('_', ' ').title()} Yard",
+                location="Unknown",
+                timezone="UTC",
+                cement_bounds=ConstraintBounds(200, 550, "kg", "Cement content per m³"),
+                chemical_bounds=ConstraintBounds(0, 15, "kg", "Chemical content"),
+                steam_bounds=ConstraintBounds(0, 12, "hours", "Steam curing duration"),
+                water_bounds=ConstraintBounds(150, 220, "kg", "Water content per m³"),
+                max_batch_size=3.0,
+                min_curing_temp=5,
+                max_curing_temp=80,
+                max_steam_pressure=8,
+                cement_storage_capacity=50000,
+                chemical_storage_capacity=5000,
+                current_cement_stock=35000,
+                current_chemical_stock=2800,
+                primary_supplier="Default Supplier",
+                backup_suppliers=["Backup Supplier"],
+                min_order_quantity=1000,
+                delivery_lead_time=24,
+                quality_standards=["IS 8112"],
+                working_hours=(6, 22),
+                max_daily_production=50,
+                safety_margins={"cement": 0.05, "chemicals": 0.10, "steam": 0.15},
+                local_temperature_range=(5, 45),
+                humidity_range=(20, 90),
+                seasonal_adjustments={"summer": 1.1, "monsoon": 0.9, "winter": 0.95}
+            )
+            constraint_engine.site_profiles[site_id] = default_profile
+            constraint_engine.set_current_site(site_id)
     """
     Run optimization for all 3 strategies and return results + baseline.
     """
@@ -228,7 +300,7 @@ def get_all_strategies(target_strength, target_time, temp, humidity):
         ("fastest", "⚡ Fastest", objective_fastest),
         ("eco", "🌱 Most Eco-Friendly", objective_eco),
     ]:
-        s = build_strategy(name, label, obj_fn, target_strength, target_time, temp, humidity, baseline)
+        s = build_strategy(name, label, obj_fn, target_strength, target_time, temp, humidity, baseline, site_id)
         if s:
             strategies.append(s)
 

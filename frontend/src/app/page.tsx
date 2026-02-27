@@ -36,8 +36,8 @@ interface OptContext {
 
 export default function Dashboard() {
   const [city, setCity] = useState("Delhi");
-  const [targetTime, setTargetTime] = useState(12);
-  const [targetStrength, setTargetStrength] = useState(20);
+  const [targetTime, setTargetTime] = useState(24);
+  const [targetStrength, setTargetStrength] = useState(15);
   const [weather, setWeather] = useState<WeatherData>({ temp: null, humidity: null, desc: "Loading..." });
   const [weatherLoading, setWeatherLoading] = useState(false);
 
@@ -49,6 +49,17 @@ export default function Dashboard() {
   const [optContext, setOptContext] = useState<OptContext | null>(null);
   const [paramsChanged, setParamsChanged] = useState(false);
 
+  // City to site ID mapping
+  const cityToSiteId: Record<string, string> = {
+    "Delhi": "delhi_yard",
+    "Mumbai": "mumbai_yard",
+    "Chennai": "chennai_yard",
+    "Kolkata": "kolkata_yard",
+    "Bangalore": "bangalore_yard",
+    "Hyderabad": "hyderabad_yard",
+    "Pune": "pune_yard",
+    "Ahmedabad": "ahmedabad_yard",
+  };
 
   const hasRunRef = useRef(false);
   const autoRunTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -89,17 +100,22 @@ export default function Dashboard() {
     setError("");
     setParamsChanged(false);
     try {
+      const siteId = cityToSiteId[city] || city.toLowerCase().replace(/\s+/g, '_') + '_yard';
+      
       const res = await axios.post(`${AI_SERVICE_URL}/optimize`, {
         target_strength: targetStrength,
         target_time: targetTime,
         temp: weather.temp,
         humidity: weather.humidity,
+        site_id: siteId,
+        use_real_time_data: false,  // Set to true if you want to use real-time data
       });
       if (res.data.status === "success") {
         setResult(res.data);
         setSelectedStrategy(0);
         setActiveTab("results");
         hasRunRef.current = true;
+        setError(""); // Clear any previous errors
 
         setOptContext({
           city,
@@ -110,7 +126,12 @@ export default function Dashboard() {
           timestamp: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
         });
       } else {
-        setError(res.data.message || "Optimization failed.");
+        // Provide more helpful error messages
+        let errorMessage = res.data.message || "Optimization failed.";
+        if (errorMessage.includes("too aggressive")) {
+          errorMessage = `Could not find optimal recipe. Try: lower strength target (${Math.max(5, targetStrength - 5)} MPa) or longer time (${targetTime + 12} hours)`;
+        }
+        setError(errorMessage);
       }
     } catch {
       setError("Cannot connect to CastOpt AI service. Ensure FastAPI is running on port 8000.");

@@ -2,6 +2,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
+from datetime import datetime
+from dataclasses import asdict
 import pandas as pd
 import joblib
 import os
@@ -10,6 +12,8 @@ from optimizer import (
     predict_strength, calculate_cost, calculate_co2, calculate_energy, model
 )
 from train_model import train_model
+from realtime_data import real_time_data, SensorReading
+from constraints import constraint_engine
 
 app = FastAPI(title="CastOpt AI", version="2.0")
 
@@ -27,6 +31,8 @@ class OptimizeRequest(BaseModel):
     target_time: float
     temp: float
     humidity: float
+    site_id: Optional[str] = None
+    use_real_time_data: Optional[bool] = False
 
 
 class WhatIfRequest(BaseModel):
@@ -60,8 +66,20 @@ async def optimize_cycle(data: OptimizeRequest):
     Returns 3 strategies (cheapest, fastest, eco) + baseline + strength curves.
     """
     try:
+        # Use real-time data if requested
+        temp = data.temp
+        humidity = data.humidity
+        
+        if data.use_real_time_data and data.site_id:
+            # Get real-time conditions
+            conditions = real_time_data.get_current_conditions(data.site_id)
+            if conditions['reading_count'] > 0:
+                temp = conditions['temperature']
+                humidity = conditions['humidity']
+                print(f"Using real-time data: {temp:.1f}°C, {humidity:.1f}% RH")
+        
         strategies, baseline = get_all_strategies(
-            data.target_strength, data.target_time, data.temp, data.humidity
+            data.target_strength, data.target_time, temp, humidity, data.site_id
         )
 
         if not strategies:
@@ -84,12 +102,21 @@ async def optimize_cycle(data: OptimizeRequest):
             data.temp, data.humidity, max_hours=24
         )
 
+        # Add real-time data context
+        context_info = {
+            "used_real_time_data": data.use_real_time_data and data.site_id,
+            "real_time_conditions": real_time_data.get_current_conditions(data.site_id) if data.site_id else None,
+            "system_status": real_time_data.get_system_status(),
+            "site_constraints": constraint_engine.get_current_constraints().__dict__ if data.site_id and constraint_engine.get_current_constraints() else None
+        }
+        
         return {
             "status": "success",
             "target_strength": data.target_strength,
             "target_time": data.target_time,
             "strategies": strategies,
             "baseline": baseline,
+            "context": context_info
         }
 
     except Exception as e:
@@ -161,3 +188,77 @@ async def retrain_model_endpoint(data: RetrainRequest):
 
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+
+@app.get("/realtime/status")
+async def get_realtime_status():
+    """Get status of all real-time data sources."""
+    return real_time_data.get_system_status()
+
+
+@app.get("/realtime/conditions/{location}")
+async def get_current_conditions(location: str):
+    """Get current environmental conditions for a location."""
+    conditions = real_time_data.get_current_conditions(location)
+    return {
+        "location": location,
+        "conditions": conditions,
+        "timestamp": datetime.now().isoformat()
+    }
+
+
+@app.get("/realtime/forecast/{location}")
+async def get_weather_forecast(location: str, days: int = 3):
+    """Get weather forecast for a location."""
+    forecasts = await real_time_data.fetch_weather_forecast(location)
+    return {
+        "location": location,
+        "forecasts": [asdict(f) for f in forecasts[:days*3]],  # 3 readings per day
+        "days_requested": days
+    }
+
+
+@app.get("/realtime/prices")
+async def get_material_prices():
+    """Get current material prices."""
+    prices = real_time_data.get_current_prices()
+    return {
+        "prices": {k: asdict(v) for k, v in prices.items()},
+        "timestamp": datetime.now().isoformat()
+    }
+
+
+@app.get("/realtime/schedules/{location}")
+async def get_production_schedules(location: str):
+    """Get active production schedules for a location."""
+    schedules = real_time_data.get_active_schedules(location)
+    return {
+        "location": location,
+        "schedules": [asdict(s) for s in schedules],
+        "count": len(schedules)
+    }
+
+
+@app.get("/constraints/sites")
+async def get_available_sites():
+    """Get list of available site profiles."""
+    sites = constraint_engine.get_available_sites()
+    return {
+        "sites": sites,
+        "count": len(sites)
+    }
+
+
+@app.get("/constraints/site/{site_id}")
+async def get_site_constraints(site_id: str):
+    """Get constraints for a specific site."""
+    constraint_engine.set_current_site(site_id)
+    constraints = constraint_engine.get_current_constraints()
+    if constraints:
+        return {
+            "site_id": site_id,
+            "constraints": asdict(constraints),
+            "dynamic_bounds": constraint_engine.get_dynamic_bounds()
+        }
+    else:
+        return {"status": "error", "message": f"Site {site_id} not found"}

@@ -26,7 +26,7 @@ export default function StrengthCurveChart({
 
     return (
         <div className="w-full h-[280px]">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height={280}>
                 <LineChart data={merged} margin={{ top: 10, right: 20, left: 0, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="2 2" stroke="#E2E8F0" vertical={false} />
                     <XAxis

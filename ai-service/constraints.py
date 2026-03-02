@@ -7,8 +7,12 @@ import json
 import os
 from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass, asdict
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import numpy as np
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    from backports.zoneinfo import ZoneInfo
 
 
 @dataclass
@@ -292,7 +296,11 @@ class DynamicConstraintEngine:
         if chemicals > profile.current_chemical_stock:
             violations.append(f"Insufficient chemical stock: {profile.current_chemical_stock} kg available")
         
-        current_time = datetime.now()
+        try:
+            site_tz = ZoneInfo(profile.timezone)
+        except Exception:
+            site_tz = timezone(timedelta(hours=5, minutes=30))
+        current_time = datetime.now(site_tz)
         current_hour = current_time.hour
         if not (profile.working_hours[0] <= current_hour <= profile.working_hours[1]):
             violations.append(f"Outside working hours: {profile.working_hours[0]}-{profile.working_hours[1]}")
